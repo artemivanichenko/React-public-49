@@ -4,6 +4,7 @@ import { MoviesGallery } from './MoviesGallery/Movies';
 import React, { Component } from 'react';
 import { Modal } from './Modal/Modal';
 import { fetchMovies } from '../services/movies-api';
+import { Loader } from './Loader/Loader';
 
 export class App extends Component {
   state = {
@@ -16,7 +17,18 @@ export class App extends Component {
   };
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.isListShown !== this.state.isListShown) {
+    const { page, isListShown } = this.state;
+    if (
+      (prevState.isListShown !== isListShown || prevState.page !== page) &&
+      isListShown === true
+    ) {
+      this.getMovies();
+    }
+    if (prevState.isListShown !== isListShown && isListShown === false) {
+      this.setState({
+        movies: [],
+        page: 1,
+      });
     }
   }
 
@@ -52,6 +64,10 @@ export class App extends Component {
       .finally(() => this.setState({ isLoading: false }));
   };
 
+  loadMore = () => {
+    this.setState(prevState => ({ page: prevState.page + 1 }));
+  };
+
   render() {
     const { movies, currentPoster, isListShown } = this.state;
     return (
@@ -60,13 +76,18 @@ export class App extends Component {
           text={isListShown ? 'Hide movies list' : 'Show movies list'}
           clickHandler={this.toggleList}
         />
+        {this.state.isLoading && <Loader />}
         {isListShown && (
-          <MoviesGallery
-            movies={movies}
-            onDelete={this.handleDelete}
-            openModal={this.openModal}
-          />
+          <div>
+            <MoviesGallery
+              movies={movies}
+              onDelete={this.handleDelete}
+              openModal={this.openModal}
+            />
+            <Button text="Load more" clickHandler={this.loadMore} />
+          </div>
         )}
+
         {currentPoster && (
           <Modal poster={currentPoster} onClose={this.closeModal} />
         )}
