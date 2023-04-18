@@ -1,24 +1,22 @@
 import { Button } from './Button/Button';
-import movies from '../data/movies.json';
+
 import { MoviesGallery } from './MoviesGallery/Movies';
 import React, { Component } from 'react';
 import { Modal } from './Modal/Modal';
+import { fetchMovies } from '../services/movies-api';
+
 export class App extends Component {
   state = {
-    movies: movies,
+    movies: [],
     currentPoster: null,
+    isListShown: false,
+    page: 1,
+    isLoading: false,
+    error: '',
   };
-  componentDidMount() {
-    const data = localStorage.getItem('movies');
-    if (data !== null) {
-      this.setState({ movies: JSON.parse(data) });
-    }
-    console.log(data);
-  }
 
   componentDidUpdate(prevProps, prevState) {
-    if (this.state.movies !== prevState.movies) {
-      localStorage.setItem('movies', JSON.stringify(this.state.movies));
+    if (prevState.isListShown !== this.state.isListShown) {
     }
   }
 
@@ -38,17 +36,39 @@ export class App extends Component {
     this.setState({ currentPoster: null });
   };
 
+  toggleList = () => {
+    this.setState(prevState => ({ isListShown: !prevState.isListShown }));
+  };
+
+  getMovies = () => {
+    this.setState({ isLoading: true });
+    fetchMovies(this.state.page)
+      .then(({ data: { results } }) => {
+        this.setState(prevState => ({
+          movies: [...prevState.movies, ...results],
+        }));
+      })
+      .catch(error => this.setState({ error: error.message }))
+      .finally(() => this.setState({ isLoading: false }));
+  };
+
   render() {
-    const { movies, currentPoster } = this.state;
+    const { movies, currentPoster, isListShown } = this.state;
     return (
       <>
-        <MoviesGallery
-          movies={movies}
-          onDelete={this.handleDelete}
-          openModal={this.openModal}
+        <Button
+          text={isListShown ? 'Hide movies list' : 'Show movies list'}
+          clickHandler={this.toggleList}
         />
+        {isListShown && (
+          <MoviesGallery
+            movies={movies}
+            onDelete={this.handleDelete}
+            openModal={this.openModal}
+          />
+        )}
         {currentPoster && (
-          <Modal poster={this.state.currentPoster} onClose={this.closeModal} />
+          <Modal poster={currentPoster} onClose={this.closeModal} />
         )}
       </>
     );
